@@ -81,7 +81,12 @@ nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 88%,
 .svg-btn:hover{border-color:var(--tl);color:var(--tl)}
 
 /* Tooltip */
-.tooltip{position:absolute;pointer-events:none;background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;font-size:12px;z-index:30;box-shadow:0 4px 16px rgba(0,0,0,.3);max-width:240px;display:none}
+.tooltip{position:absolute;background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;font-size:12px;z-index:30;box-shadow:0 4px 16px rgba(0,0,0,.3);max-width:260px;display:none}
+.tooltip .tt-btns{display:flex;gap:6px;margin-top:6px}
+.tooltip .tt-btn{background:var(--tl);color:#0f1117;border:none;border-radius:4px;padding:3px 10px;font-size:11px;font-family:var(--fb);font-weight:500;cursor:pointer}
+.tooltip .tt-btn:hover{opacity:0.85}
+.tooltip .tt-btn.secondary{background:transparent;border:1px solid var(--bd);color:var(--mt)}
+.tooltip .tt-btn.secondary:hover{border-color:var(--tl);color:var(--tl)}
 .tooltip .tid{font-family:var(--fm);font-weight:600;color:var(--tl)}
 .tooltip .tdesc{color:var(--mt);font-size:11px;margin-bottom:4px}
 .tooltip .trow{display:flex;justify-content:space-between;gap:12px;font-size:11px}
@@ -394,20 +399,37 @@ function drawScatter() {
   });
 }
 
+let tooltipTimer = null;
 function showTooltip(e, d) {
+  clearTimeout(tooltipTimer);
   const tt = document.getElementById('tooltip');
   const gene = GENES[d.partner];
+  const hl = highlightSet.has(d.partner);
   tt.innerHTML = `<div class="tid">${gene.i}</div><div class="tdesc">${gene.d}</div>
     <div class="trow"><span class="lab">zStrains</span><span class="val" style="color:${zColor(d.z)}">${d.z.toFixed(1)}</span></div>
     <div class="trow"><span class="lab">readRatio</span><span class="val">${d.rr.toFixed(4)}</span></div>
-    <div class="trow"><span class="lab">nStrains</span><span class="val">${d.ns}</span></div>`;
+    <div class="trow"><span class="lab">nStrains</span><span class="val">${d.ns}</span></div>
+    <div class="tt-btns">
+      <button class="tt-btn" onclick="selectGene('${gene.i}')">Plot ${gene.i}</button>
+      <button class="tt-btn secondary" onclick="toggleHighlight(${d.partner})">${hl ? 'Unhighlight' : 'Highlight'}</button>
+    </div>`;
   tt.style.display = 'block';
   const wrap = document.getElementById('plotWrap');
   const rect = wrap.getBoundingClientRect();
-  tt.style.left = Math.min(e.clientX - rect.left + 12, rect.width - 200) + 'px';
-  tt.style.top = (e.clientY - rect.top - 80) + 'px';
+  tt.style.left = Math.min(e.clientX - rect.left + 12, rect.width - 220) + 'px';
+  tt.style.top = (e.clientY - rect.top - 100) + 'px';
 }
-function hideTooltip() { document.getElementById('tooltip').style.display = 'none'; }
+function hideTooltip() {
+  tooltipTimer = setTimeout(() => { document.getElementById('tooltip').style.display = 'none'; }, 250);
+}
+function toggleHighlight(gIdx) {
+  if (highlightSet.has(gIdx)) highlightSet.delete(gIdx);
+  else highlightSet.add(gIdx);
+  document.getElementById('legendHL').classList.toggle('hidden', highlightSet.size === 0);
+  drawScatter();
+  renderCorrelations();
+  document.getElementById('tooltip').style.display = 'none';
+}
 
 function downloadSVG() {
   const svg = document.getElementById('scatterSvg');
@@ -579,6 +601,12 @@ function toggleTheme() {
 }
 
 // Load data and build reverse index
+// Keep tooltip open when hovering over it (so buttons are clickable)
+document.getElementById('tooltip').addEventListener('mouseenter', () => clearTimeout(tooltipTimer));
+document.getElementById('tooltip').addEventListener('mouseleave', () => {
+  document.getElementById('tooltip').style.display = 'none';
+});
+
 loadData().then(() => {
   document.getElementById('loadStatus').textContent = 'Building index...';
   setTimeout(() => {
