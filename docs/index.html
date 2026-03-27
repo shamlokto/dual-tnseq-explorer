@@ -106,6 +106,8 @@ nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 88%,
 .corr-item .right{text-align:right;flex-shrink:0;margin-left:8px}
 .corr-item .rval{font-family:var(--fm);font-size:14px;font-weight:600}
 .corr-item .rn{font-size:10px;color:var(--ft)}
+.plot-btn{background:none;border:1px solid var(--bd);border-radius:3px;color:var(--ft);font-size:9px;padding:0 4px;cursor:pointer;margin-left:4px;line-height:1.4;vertical-align:middle}
+.plot-btn:hover{background:var(--tl);color:#0f1117;border-color:var(--tl)}
 .panel-footer{padding:8px 14px;border-top:1px solid var(--bd);font-size:11px;color:var(--ft);text-align:center}
 .panel-loading{padding:40px;text-align:center;color:var(--mt);font-size:12px}
 
@@ -150,7 +152,7 @@ nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 88%,
     <div class="plot-header hidden" id="plotHeader">
       <div>
         <h2><span id="queryGeneId"></span> <span id="queryGeneDesc" style="font-weight:400;font-size:12px;color:var(--mt);font-family:var(--fb)"></span></h2>
-        <div class="sub"><span id="partnerCount"></span> partners · readRatio vs zStrains</div>
+        <div class="sub"><span id="partnerCount"></span> partners · X: readRatio · Y: zStrains</div>
       </div>
       <button class="svg-btn" onclick="downloadSVG()">↓ SVG</button>
     </div>
@@ -312,12 +314,16 @@ function drawScatter() {
   const m = { t: 25, r: 15, b: 45, l: 55 };
   const pw = W - m.l - m.r, ph = H - m.t - m.b;
 
+  // X = readRatio, Y = zStrains
   const zs = currentData.map(d => d.z);
   const rs = currentData.map(d => d.rr);
-  const xMin = Math.min(...zs, -5), xMax = Math.max(...zs, 5);
-  const yMax = Math.min(Math.max(...rs, 2), 5);
-  const xPad = (xMax - xMin) * 0.03;
-  const x0 = xMin - xPad, x1 = xMax + xPad, y0 = 0, y1 = yMax * 1.05;
+  const rrMax = Math.min(Math.max(...rs, 2), 5);
+  const zMin = Math.min(...zs, -5), zMax = Math.max(...zs, 5);
+  const zPad = (zMax - zMin) * 0.03;
+  // X domain: readRatio 0 to rrMax
+  const x0 = 0, x1 = rrMax * 1.05;
+  // Y domain: zStrains (most negative at bottom, most positive at top)
+  const y0 = zMin - zPad, y1 = zMax + zPad;
   const sx = v => m.l + ((v - x0) / (x1 - x0)) * pw;
   const sy = v => m.t + ph - ((v - y0) / (y1 - y0)) * ph;
 
@@ -328,54 +334,55 @@ function drawScatter() {
 
   let html = `<rect x="${m.l}" y="${m.t}" width="${pw}" height="${ph}" fill="${bgColor}" rx="3"/>`;
 
-  // Grid
-  [-5,-3,0,3,5].filter(v => v >= x0 && v <= x1).forEach(v => {
+  // Horizontal grid: z-score thresholds
+  [-5,-3,0,3,5].filter(v => v >= y0 && v <= y1).forEach(v => {
     const c = v === 0 ? zeroColor : gridColor;
-    html += `<line x1="${sx(v)}" y1="${m.t}" x2="${sx(v)}" y2="${m.t+ph}" stroke="${c}" stroke-width="${v===0?1:0.5}" stroke-dasharray="${v===0?'':'3,3'}"/>`;
+    html += `<line x1="${m.l}" y1="${sy(v)}" x2="${m.l+pw}" y2="${sy(v)}" stroke="${c}" stroke-width="${v===0?1:0.5}" stroke-dasharray="${v===0?'':'3,3'}"/>`;
   });
-  [0.2,0.5,1,1.5,2].filter(v => v <= y1).forEach(v => {
+  // Vertical grid: readRatio thresholds
+  [0.2,0.5,1,1.5,2].filter(v => v <= x1).forEach(v => {
     const c = v === 1 ? zeroColor : gridColor;
-    html += `<line x1="${m.l}" y1="${sy(v)}" x2="${m.l+pw}" y2="${sy(v)}" stroke="${c}" stroke-width="${v===1?1:0.5}" stroke-dasharray="${v===1?'':'3,3'}"/>`;
+    html += `<line x1="${sx(v)}" y1="${m.t}" x2="${sx(v)}" y2="${m.t+ph}" stroke="${c}" stroke-width="${v===1?1:0.5}" stroke-dasharray="${v===1?'':'3,3'}"/>`;
   });
 
-  // Threshold shading
-  if (sx(-3) > m.l) html += `<rect x="${m.l}" y="${m.t}" width="${sx(-3)-m.l}" height="${ph}" fill="rgba(239,68,68,0.03)"/>`;
-  if (sx(3) < m.l+pw) html += `<rect x="${sx(3)}" y="${m.t}" width="${m.l+pw-sx(3)}" height="${ph}" fill="rgba(37,99,235,0.03)"/>`;
+  // Threshold shading: negative z at bottom, positive z at top
+  if (sy(-3) < m.t+ph) html += `<rect x="${m.l}" y="${sy(-3)}" width="${pw}" height="${m.t+ph-sy(-3)}" fill="rgba(239,68,68,0.03)"/>`;
+  if (sy(3) > m.t) html += `<rect x="${m.l}" y="${m.t}" width="${pw}" height="${sy(3)-m.t}" fill="rgba(37,99,235,0.03)"/>`;
 
   // Points (non-highlighted first)
   const hasHL = highlightSet.size > 0;
   currentData.forEach((d, i) => {
-    const cx = sx(d.z), cy = sy(Math.min(d.rr, y1));
+    const cx = sx(Math.min(d.rr, x1)), cy = sy(Math.max(Math.min(d.z, y1), y0));
     const hl = highlightSet.has(d.partner);
-    if (hl) return; // draw later
+    if (hl) return;
     const r = 2.2, op = hasHL ? 0.12 : 0.45;
     html += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${zColor(d.z)}" opacity="${op}" data-i="${i}"/>`;
   });
   // Highlighted points
   currentData.forEach((d, i) => {
     if (!highlightSet.has(d.partner)) return;
-    const cx = sx(d.z), cy = sy(Math.min(d.rr, y1));
+    const cx = sx(Math.min(d.rr, x1)), cy = sy(Math.max(Math.min(d.z, y1), y0));
     html += `<circle cx="${cx}" cy="${cy}" r="5" fill="#22d3ee" opacity="1" stroke="#fff" stroke-width="1" data-i="${i}"/>`;
     html += `<text x="${cx+7}" y="${cy-7}" fill="#22d3ee" font-size="9" font-family="var(--fm)" font-weight="600">${IDX2G[d.partner]}</text>`;
   });
 
-  // X ticks
-  const xStep = pw > 400 ? 1 : 2;
-  for (let v = Math.ceil(x0); v <= x1; v += xStep) {
+  // X ticks (readRatio)
+  [0,0.2,0.5,1,1.5,2,3].filter(v=>v<=x1).forEach(v => {
     html += `<text x="${sx(v)}" y="${H-m.b+16}" fill="${textColor}" font-size="10" text-anchor="middle" font-family="var(--fm)">${v}</text>`;
-  }
-  // Y ticks
-  [0,0.2,0.5,1,1.5,2,3].filter(v=>v<=y1).forEach(v => {
-    html += `<text x="${m.l-6}" y="${sy(v)+4}" fill="${textColor}" font-size="10" text-anchor="end" font-family="var(--fm)">${v}</text>`;
   });
+  // Y ticks (zStrains)
+  const yStep = (y1 - y0) > 15 ? 2 : 1;
+  for (let v = Math.ceil(y0); v <= y1; v += yStep) {
+    html += `<text x="${m.l-6}" y="${sy(v)+4}" fill="${textColor}" font-size="10" text-anchor="end" font-family="var(--fm)">${v}</text>`;
+  }
 
   // Axis labels
-  html += `<text x="${m.l+pw/2}" y="${H-4}" fill="${textColor}" font-size="11" text-anchor="middle" font-weight="600">zStrains (← synthetic lethal | suppression →)</text>`;
-  html += `<text x="12" y="${m.t+ph/2}" fill="${textColor}" font-size="11" text-anchor="middle" font-weight="600" transform="rotate(-90,12,${m.t+ph/2})">readRatio</text>`;
+  html += `<text x="${m.l+pw/2}" y="${H-4}" fill="${textColor}" font-size="11" text-anchor="middle" font-weight="600">readRatio (observed / expected)</text>`;
+  html += `<text x="12" y="${m.t+ph/2}" fill="${textColor}" font-size="11" text-anchor="middle" font-weight="600" transform="rotate(-90,12,${m.t+ph/2})">zStrains (↓ synthetic lethal · suppression ↑)</text>`;
 
-  // Threshold labels
-  if (sx(-3)>m.l) html += `<text x="${sx(-3)}" y="${m.t-4}" fill="#f97316" font-size="8" text-anchor="middle" opacity="0.5">z=-3</text>`;
-  if (sx(3)<m.l+pw) html += `<text x="${sx(3)}" y="${m.t-4}" fill="#60a5fa" font-size="8" text-anchor="middle" opacity="0.5">z=3</text>`;
+  // Threshold labels on Y axis
+  if (sy(-3)<m.t+ph) html += `<text x="${m.l+pw+4}" y="${sy(-3)+3}" fill="#f97316" font-size="8" opacity="0.6">z=-3</text>`;
+  if (sy(3)>m.t) html += `<text x="${m.l+pw+4}" y="${sy(3)+3}" fill="#60a5fa" font-size="8" opacity="0.6">z=3</text>`;
 
   svg.innerHTML = html;
 
@@ -469,20 +476,29 @@ function renderCorrelations() {
     const gene = GENES[c.g];
     const sel = highlightSet.has(c.g) ? ' sel' : '';
     return `<div class="corr-item${sel}" data-g="${c.g}">
-      <div class="left"><div class="cid">${gene.i}</div><div class="cdesc">${gene.d}</div></div>
+      <div class="left"><div class="cid">${gene.i} <button class="plot-btn" data-gene="${gene.i}" title="Plot this gene">▶</button></div><div class="cdesc">${gene.d}</div></div>
       <div class="right"><div class="rval" style="color:${corrColor(c.r)}">${c.r>0?'+':''}${c.r.toFixed(3)}</div><div class="rn">${c.n} shared</div></div>
     </div>`;
   }).join('');
 
-  // Click to highlight
+  // Click row to highlight on current plot
   list.querySelectorAll('.corr-item').forEach(el => {
-    el.addEventListener('click', () => {
+    el.addEventListener('click', (e) => {
+      if (e.target.classList.contains('plot-btn')) return; // handled separately
       const g = +el.dataset.g;
       if (highlightSet.has(g)) highlightSet.delete(g);
       else highlightSet.add(g);
       document.getElementById('legendHL').classList.toggle('hidden', highlightSet.size === 0);
       drawScatter();
       renderCorrelations();
+    });
+  });
+
+  // Click play button to switch to that gene's scatter plot
+  list.querySelectorAll('.plot-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectGene(btn.dataset.gene);
     });
   });
 
