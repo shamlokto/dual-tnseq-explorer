@@ -144,7 +144,7 @@ export default function Home() {
                     <TableRow>
                       <TableHead className="text-xs">Locus ID</TableHead>
                       <TableHead className="text-xs">Description</TableHead>
-                      <TableHead className="text-xs w-24">Essential</TableHead>
+
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -158,15 +158,7 @@ export default function Home() {
                           {gene.locusId}
                         </TableCell>
                         <TableCell className="text-sm truncate max-w-xs">{gene.desc || "—"}</TableCell>
-                        <TableCell>
-                          {gene.ess ? (
-                            <Badge variant="destructive" className="text-xs">Essential</Badge>
-                          ) : gene.ess === 0 ? (
-                            <Badge variant="secondary" className="text-xs">Non-essential</Badge>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
+
                       </TableRow>
                     ))}
                   </TableBody>

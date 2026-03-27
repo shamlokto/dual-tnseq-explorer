@@ -192,7 +192,7 @@ export default function ScatterPlotPage() {
                   >
                     <span className="font-mono font-medium text-primary">{g.locusId}</span>
                     <span className="text-muted-foreground truncate">{g.desc}</span>
-                    {g.ess && <Badge variant="destructive" className="text-[10px] px-1.5 py-0 ml-auto">Essential</Badge>}
+
                   </button>
                 ))}
               </div>

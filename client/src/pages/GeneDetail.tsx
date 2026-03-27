@@ -86,11 +86,7 @@ export default function GeneDetail() {
                   <div className="flex items-center gap-3 mb-3">
                     <Dna className="w-5 h-5 text-primary" />
                     <span className="font-mono text-lg font-bold text-primary" data-testid="text-gene-locus">{gene.locusId}</span>
-                    {gene.ess ? (
-                      <Badge variant="destructive">Essential</Badge>
-                    ) : gene.ess === 0 ? (
-                      <Badge variant="secondary">Non-essential</Badge>
-                    ) : null}
+
                   </div>
                   <p className="text-sm mb-3" data-testid="text-gene-desc">{gene.desc || "No description available"}</p>
                   <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-xs text-muted-foreground">

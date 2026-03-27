@@ -176,11 +176,7 @@ function GeneInfoCard({ gene, label }: { gene: any; label: string }) {
           <Link href={`/gene/${gene.locusId}`} className="font-mono font-bold text-primary hover:underline" data-testid={`link-${label.toLowerCase().replace(/\s/g, '-')}-locus`}>
             {gene.locusId}
           </Link>
-          {gene.ess ? (
-            <Badge variant="destructive" className="text-xs">Ess</Badge>
-          ) : gene.ess === 0 ? (
-            <Badge variant="secondary" className="text-xs">Non-ess</Badge>
-          ) : null}
+
         </div>
         <p className="text-sm text-muted-foreground">{gene.desc || "No description"}</p>
         <div className="mt-2 text-xs text-muted-foreground">

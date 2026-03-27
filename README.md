@@ -8,20 +8,18 @@ Interactive web application for querying and visualizing genetic interaction dat
 
 ## Features
 
-- **Home** — Summary statistics, gene search, and top 20 strongest negative genetic interactions
-- **Gene Detail** — View all interaction partners for any gene, sortable and paginated
-- **Gene Pair Detail** — Inspect the interaction metrics between any two genes with a visual strength gauge
-- **Browse** — Explore all strong genetic interactions genome-wide with filtering and CSV export
-- **Scatter Plot** — Interactive readRatio vs zStrains scatter plot for any query gene
-- **GI Profile Correlation** — On-the-fly Pearson correlation of a gene's GI profile against all ~1,500 genes in the dataset, identifying functionally related genes
+- **Scatter Plot** — Interactive readRatio vs zStrains scatter plot for any query gene. Color-coded by interaction strength. Hover for details, click to inspect gene pairs.
+- **GI Profile Correlation** — On-the-fly Pearson correlation of a gene's GI profile against all ~1,500 genes in the dataset. Click correlated genes to highlight them on the scatter plot.
+- **Gene Detail** — View all interaction partners for any gene, sortable and paginated.
+- **Gene Pair Detail** — Inspect the interaction metrics between any two genes with a visual strength gauge.
+- **SVG Export** — Download scatter plots as publication-ready SVG files.
 
 ## Data
 
-The app loads data from the [Figshare repository](https://doi.org/10.6084/m9.figshare.29382974.v1):
+The app loads processed data from the [Figshare repository](https://doi.org/10.6084/m9.figshare.29382974.v1):
 
 - `genepair_stats.tsv` — 894,694 gene pair interaction scores
 - `genes.tab` — 1,984 gene annotations for *S. pneumoniae* D39
-- `esstable` — Gene essentiality predictions
 
 On first startup, the server imports all data into a local SQLite database (~140 MB) with indexed queries for fast access.
 
@@ -29,14 +27,14 @@ On first startup, the server imports all data into a local SQLite database (~140
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) v18+ 
+- [Node.js](https://nodejs.org/) v18+
 - Data files from [Figshare](https://doi.org/10.6084/m9.figshare.29382974.v1)
 
 ### Setup
 
 ```bash
 # Clone the repository
-git clone https://github.com/<your-username>/dual-tnseq-explorer.git
+git clone https://github.com/shamlokto/dual-tnseq-explorer.git
 cd dual-tnseq-explorer
 
 # Install dependencies
@@ -44,7 +42,7 @@ npm install
 
 # Place data files
 # Download small.zip from Figshare and extract into ../dual_tnseq_data/small/
-# The directory should contain: genepair_stats.tsv, genes.tab, esstable
+# The directory should contain: genepair_stats.tsv, genes.tab
 
 # Start the development server
 npm run dev
@@ -69,12 +67,10 @@ NODE_ENV=production node dist/index.cjs
 
 | Endpoint | Description |
 |---|---|
-| `GET /api/stats` | Summary statistics |
 | `GET /api/genes/search?q=xxx` | Search genes by locus ID or description |
-| `GET /api/gene/:locusId` | Gene details with essentiality |
+| `GET /api/gene/:locusId` | Gene details |
 | `GET /api/gene-pair/:gene1/:gene2` | Specific gene pair interaction |
 | `GET /api/interactions/:locusId` | All interactions for a gene (paginated) |
-| `GET /api/top-interactions` | Top interactions genome-wide |
 | `GET /api/scatter/:locusId` | Scatter plot data (all partners) |
 | `GET /api/correlations/:locusId` | GI profile correlation against all genes |
 
