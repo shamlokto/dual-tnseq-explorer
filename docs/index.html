@@ -45,9 +45,8 @@ nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 88%,
 .tbtn{background:none;border:1px solid var(--bd);border-radius:5px;color:var(--mt);padding:3px 7px;cursor:pointer;font-size:12px}
 .tbtn:hover{border-color:var(--tl);color:var(--tl)}
 
-/* Main layout */
-.app{display:grid;grid-template-columns:1fr 340px;gap:0;height:calc(100vh - 43px);overflow:hidden}
-@media(max-width:900px){.app{grid-template-columns:1fr;grid-template-rows:1fr auto}.panel{max-height:40vh}}
+/* Main layout — now handled by .app-view */
+@media(max-width:900px){.panel{max-height:40vh}}
 
 /* Search */
 .search-bar{padding:12px 16px;border-bottom:1px solid var(--bd);position:relative}
@@ -127,6 +126,98 @@ nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 88%,
 /* Footer links row */
 .cite{padding:6px 16px;border-top:1px solid var(--bd);font-size:10px;color:var(--ft);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px}
 .cite a{color:var(--ft);font-size:10px}.cite a:hover{color:var(--tl)}
+
+/* ===== TAB NAV ===== */
+.nav-tabs{display:flex;gap:4px;margin:0 auto 0 24px}
+.nav-tab{background:none;border:1px solid var(--bd);border-radius:5px;color:var(--mt);padding:4px 12px;cursor:pointer;font-size:12px;font-family:var(--fb);font-weight:500;transition:all .15s}
+.nav-tab:hover{border-color:var(--tl);color:var(--tl)}
+.nav-tab.active{background:var(--tl);color:#0f1117;border-color:var(--tl);font-weight:600}
+
+/* ===== APP VIEWS ===== */
+.app-view{display:none;height:calc(100vh - 43px);overflow:hidden}
+.app-view.active{display:grid}
+.view-gi{grid-template-columns:1fr 340px;gap:0}
+.view-pd{grid-template-columns:1fr 360px;gap:0}
+@media(max-width:900px){.view-gi.active{grid-template-columns:1fr;grid-template-rows:1fr auto}.view-pd.active{grid-template-columns:1fr;grid-template-rows:auto 1fr auto}}
+
+/* ===== PATHWAY DISCOVERY: Stats Bar ===== */
+.pd-stats{grid-column:1/-1;display:flex;align-items:center;gap:24px;padding:10px 20px;border-bottom:1px solid var(--bd);background:var(--sf)}
+.pd-stat{display:flex;align-items:baseline;gap:6px}
+.pd-stat .val{font-family:var(--fm);font-size:18px;font-weight:600;color:var(--tl)}
+.pd-stat .lab{font-size:11px;color:var(--mt)}
+.pd-stat-div{width:1px;height:24px;background:var(--bd)}
+
+/* ===== PATHWAY DISCOVERY: Left Panel (Table) ===== */
+.pd-left{display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--bd)}
+.pd-filters{padding:12px 16px;border-bottom:1px solid var(--bd);display:flex;flex-direction:column;gap:8px}
+.pd-filter-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pd-search{flex:1;min-width:180px;background:var(--sf);border:1px solid var(--bd);border-radius:6px;padding:7px 12px;color:var(--tx);font-family:var(--fm);font-size:12px;outline:none}
+.pd-search:focus{border-color:var(--tl)}
+.pd-select{background:var(--sf);border:1px solid var(--bd);border-radius:5px;padding:5px 8px;color:var(--tx);font-size:11px;font-family:var(--fb);outline:none;max-width:220px;cursor:pointer}
+.pd-select:focus{border-color:var(--tl)}
+.pd-check{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--mt);cursor:pointer;white-space:nowrap}
+.pd-check input{accent-color:var(--tl)}
+.pd-slider-wrap{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--mt);white-space:nowrap}
+.pd-slider-wrap input[type=range]{width:80px;accent-color:var(--tl);cursor:pointer}
+.pd-slider-wrap .sv{font-family:var(--fm);color:var(--tl);min-width:32px}
+
+/* Candidate Table */
+.pd-table-wrap{flex:1;overflow-y:auto;overflow-x:auto}
+.pd-table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+.pd-table colgroup .col-rank{width:36px}.pd-table colgroup .col-gene{width:82px}.pd-table colgroup .col-product{width:auto}.pd-table colgroup .col-pathway{width:140px}.pd-table colgroup .col-score{width:62px}.pd-table colgroup .col-maxr{width:58px}.pd-table colgroup .col-str{width:58px}.pd-table colgroup .col-badges{width:80px}
+.pd-table thead{position:sticky;top:0;z-index:2;background:var(--sf2)}
+.pd-table th{padding:6px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--mt);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--bd);cursor:pointer;white-space:nowrap;user-select:none}
+.pd-table th:hover{color:var(--tl)}
+.pd-table th .sort-arrow{font-size:9px;margin-left:2px;opacity:.5}
+.pd-table th.sorted .sort-arrow{opacity:1;color:var(--tl)}
+.pd-table td{padding:6px 10px;border-bottom:1px solid var(--bd);vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pd-table tr{cursor:pointer;transition:background .1s}
+.pd-table tbody tr:hover{background:var(--sf2)}
+.pd-table tbody tr.sel{background:color-mix(in srgb,var(--tl) 10%,transparent)}
+.pd-gene{font-family:var(--fm);color:var(--tl);font-weight:500;font-size:12px}
+.pd-product{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mt);font-size:11px}
+.pd-pathway{max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}
+.pd-score{font-family:var(--fm);font-weight:600;font-size:13px}
+.pd-maxr{font-family:var(--fm);font-size:12px}
+.pd-str{font-family:var(--fm);font-size:12px}
+.pd-badges{display:flex;gap:4px;align-items:center}
+.pd-badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:600;letter-spacing:.3px}
+.pd-badge-hyp{background:color-mix(in srgb,var(--am) 18%,transparent);color:var(--am);border:1px solid color-mix(in srgb,var(--am) 30%,transparent)}
+.pd-badge-partners{background:color-mix(in srgb,var(--bl) 15%,transparent);color:var(--bl);border:1px solid color-mix(in srgb,var(--bl) 25%,transparent)}
+.pd-table-footer{padding:8px 14px;border-top:1px solid var(--bd);font-size:11px;color:var(--ft);text-align:center}
+
+/* ===== PATHWAY DISCOVERY: Right Panel (Evidence Card) ===== */
+.pd-right{display:flex;flex-direction:column;overflow:hidden}
+.pd-right-header{padding:12px 14px;border-bottom:1px solid var(--bd)}
+.pd-right-header h3{font-size:13px;font-weight:600}
+.pd-right-header p{font-size:11px;color:var(--mt)}
+.pd-card-wrap{flex:1;overflow-y:auto;padding:0}
+.pd-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--ft);text-align:center;padding:40px}
+.pd-empty .big{font-size:36px;margin-bottom:10px;opacity:.3}
+.pd-empty p{font-size:12px}
+
+/* Evidence Card */
+.ev-card{padding:16px}
+.ev-card-gene{font-family:var(--fm);font-size:16px;font-weight:600;color:var(--tl);margin-bottom:2px}
+.ev-card-product{font-size:12px;color:var(--mt);margin-bottom:10px}
+.ev-card-pathway{font-size:12px;margin-bottom:4px}
+.ev-card-pathway a{font-weight:500}
+.ev-card-section{margin-top:16px;padding-top:12px;border-top:1px solid var(--bd)}
+.ev-card-section h4{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--mt);margin-bottom:10px}
+.ev-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.ev-bar-label{font-size:11px;color:var(--mt);min-width:100px;text-align:right}
+.ev-bar-svg{flex:1;height:18px}
+.ev-bar-val{font-family:var(--fm);font-size:11px;min-width:36px;color:var(--tx)}
+.ev-summary{font-size:11px;color:var(--mt);line-height:1.5;padding:8px 10px;background:var(--sf2);border-radius:6px;margin-top:8px}
+
+/* Partners list */
+.ev-partners{margin-top:12px}
+.ev-partner{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;margin:2px;border-radius:4px;border:1px solid var(--bd);font-family:var(--fm);font-size:11px;color:var(--tl);cursor:pointer;background:none;transition:all .1s}
+.ev-partner:hover{background:var(--tl);color:#0f1117;border-color:var(--tl)}
+
+/* GI Explorer button */
+.ev-gi-btn{display:inline-flex;align-items:center;gap:6px;margin-top:14px;padding:7px 14px;border-radius:6px;border:none;background:var(--tl);color:#0f1117;font-family:var(--fb);font-size:12px;font-weight:600;cursor:pointer;transition:opacity .15s}
+.ev-gi-btn:hover{opacity:.85}
 </style>
 </head>
 <body>
@@ -139,6 +230,10 @@ nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 88%,
 
 <nav>
   <div class="logo"><span>Dual Tn-seq</span> Explorer</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" data-view="gi" onclick="switchTab('gi')">Genetic Interactions</button>
+    <button class="nav-tab" data-view="pd" onclick="switchTab('pd')">Pathway Discovery</button>
+  </div>
   <div class="nav-r">
     <span style="font-style:italic">S. pneumoniae D39</span>
     <a href="https://doi.org/10.1126/science.adt7685" target="_blank" rel="noopener">Paper</a>
@@ -147,7 +242,8 @@ nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 88%,
   </div>
 </nav>
 
-<div class="app">
+<!-- ===== GI VIEW (existing scatter plot) ===== -->
+<div class="app-view view-gi active" id="viewGI">
   <div class="plot-area">
     <div class="search-bar">
       <span class="icon">⌕</span>
@@ -184,7 +280,7 @@ nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 88%,
     </div>
   </div>
 
-  <div class="panel">
+  <div class="panel" id="giPanel">
     <div class="panel-header">
       <h3>GI Profile Correlations</h3>
       <p>Genes with most similar interaction profile</p>
@@ -201,6 +297,76 @@ nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 88%,
   </div>
 </div>
 
+<!-- ===== PATHWAY DISCOVERY VIEW ===== -->
+<div class="app-view view-pd" id="viewPD">
+  <!-- Stats Bar -->
+  <div class="pd-stats" id="pdStats">
+    <div class="pd-stat"><span class="val" id="pdStatCandidates">350</span><span class="lab">candidates</span></div>
+    <div class="pd-stat-div"></div>
+    <div class="pd-stat"><span class="val" id="pdStatPathways">36</span><span class="lab">pathways</span></div>
+    <div class="pd-stat-div"></div>
+    <div class="pd-stat"><span class="val" id="pdStatHyp">32</span><span class="lab">hypothetical</span></div>
+    <div class="pd-stat-div"></div>
+    <div class="pd-stat"><span class="val" id="pdStatAUC">0.621</span><span class="lab">model AUC</span></div>
+    <div class="pd-stat-div"></div>
+    <div class="pd-stat"><span class="val">7</span><span class="lab">evidence layers</span></div>
+  </div>
+
+  <!-- Left: Candidate Table -->
+  <div class="pd-left">
+    <div class="pd-filters">
+      <div class="pd-filter-row">
+        <input class="pd-search" id="pdSearch" placeholder="Search gene or product..." autocomplete="off">
+        <select class="pd-select" id="pdPathwayFilter"><option value="">All pathways</option></select>
+      </div>
+      <div class="pd-filter-row">
+        <label class="pd-check"><input type="checkbox" id="pdHypOnly"> Hypothetical only</label>
+        <div class="pd-slider-wrap">
+          <span>Score ≥</span>
+          <input type="range" id="pdScoreSlider" min="0" max="100" value="0" step="1">
+          <span class="sv" id="pdScoreVal">0.00</span>
+        </div>
+      </div>
+    </div>
+    <div class="pd-table-wrap">
+      <table class="pd-table">
+        <colgroup>
+          <col class="col-rank"><col class="col-gene"><col class="col-product"><col class="col-pathway"><col class="col-score"><col class="col-maxr"><col class="col-str"><col class="col-badges">
+        </colgroup>
+        <thead>
+          <tr id="pdTableHead">
+            <th data-col="rank" class="sorted">#<span class="sort-arrow">▲</span></th>
+            <th data-col="gene">Gene<span class="sort-arrow">▲</span></th>
+            <th data-col="product">Product<span class="sort-arrow">▲</span></th>
+            <th data-col="pathway">Pathway<span class="sort-arrow">▲</span></th>
+            <th data-col="score">Score<span class="sort-arrow">▲</span></th>
+            <th data-col="maxCorr">Max |r|<span class="sort-arrow">▲</span></th>
+            <th data-col="meanString">STRING<span class="sort-arrow">▲</span></th>
+            <th data-col="badges">Evidence<span class="sort-arrow">▲</span></th>
+          </tr>
+        </thead>
+        <tbody id="pdTableBody"></tbody>
+      </table>
+    </div>
+    <div class="pd-table-footer" id="pdTableFooter">Loading...</div>
+  </div>
+
+  <!-- Right: Evidence Detail -->
+  <div class="pd-right">
+    <div class="pd-right-header">
+      <h3>Evidence Detail</h3>
+      <p>Select a candidate to view evidence breakdown</p>
+    </div>
+    <div class="pd-card-wrap" id="pdCardWrap">
+      <div class="pd-empty" id="pdEmpty">
+        <div class="big">⧉</div>
+        <p>Click a candidate row to view<br>detailed evidence breakdown</p>
+      </div>
+      <div id="pdCard" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ===== DATA =====
 let GENES = []; // [{i:'SPD_0001', d:'description'}, ...]
@@ -211,6 +377,9 @@ let DATA = null; // DataView of binary
 let N_PAIRS = 0, N_GENES = 0;
 const ROW_SIZE = 10; // bytes per row
 const HEADER_SIZE = 8; // 2x uint32
+
+// Pathway Discovery data
+let EVIDENCE = null; // loaded from evidence_data.json
 
 // ===== LOAD DATA =====
 async function loadData() {
@@ -597,7 +766,7 @@ window.addEventListener('resize', () => { if (currentData.length) drawScatter();
 function toggleTheme() {
   const h = document.documentElement;
   h.setAttribute('data-theme', h.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
-  if (currentData.length) drawScatter();
+  if (currentData.length && document.getElementById('viewGI').classList.contains('active')) drawScatter();
 }
 
 // Load data and build reverse index
@@ -607,10 +776,271 @@ document.getElementById('tooltip').addEventListener('mouseleave', () => {
   document.getElementById('tooltip').style.display = 'none';
 });
 
-loadData().then(() => {
+// ===== TAB SWITCHING =====
+function switchTab(tab) {
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.toggle('active', b.dataset.view === tab));
+  document.getElementById('viewGI').classList.toggle('active', tab === 'gi');
+  document.getElementById('viewPD').classList.toggle('active', tab === 'pd');
+  if (tab === 'gi' && currentData.length) {
+    requestAnimationFrame(() => drawScatter());
+  }
+}
+
+// Navigate from Pathway Discovery to GI scatter for a specific gene
+function switchToGI(geneId) {
+  switchTab('gi');
+  selectGene(geneId);
+}
+
+// ===== PATHWAY DISCOVERY LOGIC =====
+let pdSortCol = 'rank';
+let pdSortAsc = true;
+let pdSelectedIdx = -1; // index into filtered list
+let pdFiltered = []; // current filtered+sorted candidates
+
+// Load evidence data (called in parallel with main data)
+async function loadEvidenceData() {
+  try {
+    const resp = await fetch('evidence_data.json');
+    EVIDENCE = await resp.json();
+  } catch(e) {
+    console.warn('Could not load evidence_data.json', e);
+  }
+}
+
+function initPathwayDiscovery() {
+  if (!EVIDENCE) return;
+  const m = EVIDENCE.meta;
+  document.getElementById('pdStatCandidates').textContent = m.totalCandidates;
+  document.getElementById('pdStatPathways').textContent = m.totalPathways;
+  // Count unique hypothetical genes
+  const hypGenes = new Set(EVIDENCE.candidates.filter(c => c.hyp).map(c => c.gene));
+  document.getElementById('pdStatHyp').textContent = hypGenes.size;
+  document.getElementById('pdStatAUC').textContent = m.aucRoc.toFixed(3);
+
+  // Populate pathway dropdown
+  const sel = document.getElementById('pdPathwayFilter');
+  const pwNames = Object.entries(EVIDENCE.pathways).map(([id, p]) => ({id, name: p.name}));
+  pwNames.sort((a,b) => a.name.localeCompare(b.name));
+  pwNames.forEach(pw => {
+    const opt = document.createElement('option');
+    opt.value = pw.id;
+    opt.textContent = pw.name;
+    sel.appendChild(opt);
+  });
+
+  // Set score slider range based on data
+  const scores = EVIDENCE.candidates.map(c => c.score);
+  const minScore = Math.floor(Math.min(...scores) * 100);
+  const slider = document.getElementById('pdScoreSlider');
+  slider.min = minScore;
+  slider.max = 100;
+  slider.value = minScore;
+  document.getElementById('pdScoreVal').textContent = (minScore/100).toFixed(2);
+
+  // Event listeners
+  document.getElementById('pdSearch').addEventListener('input', renderPDTable);
+  document.getElementById('pdPathwayFilter').addEventListener('change', renderPDTable);
+  document.getElementById('pdHypOnly').addEventListener('change', renderPDTable);
+  slider.addEventListener('input', () => {
+    document.getElementById('pdScoreVal').textContent = (slider.value/100).toFixed(2);
+    renderPDTable();
+  });
+
+  // Column sorting
+  document.getElementById('pdTableHead').addEventListener('click', e => {
+    const th = e.target.closest('th');
+    if (!th || !th.dataset.col) return;
+    const col = th.dataset.col;
+    if (col === 'badges') return; // not sortable
+    if (pdSortCol === col) pdSortAsc = !pdSortAsc;
+    else { pdSortCol = col; pdSortAsc = col === 'rank' || col === 'gene' || col === 'product' || col === 'pathway'; }
+    document.querySelectorAll('#pdTableHead th').forEach(t => {
+      t.classList.remove('sorted');
+      const arrow = t.querySelector('.sort-arrow');
+      if (arrow) arrow.textContent = '\u25B2';
+    });
+    th.classList.add('sorted');
+    th.querySelector('.sort-arrow').textContent = pdSortAsc ? '\u25B2' : '\u25BC';
+    renderPDTable();
+  });
+
+  renderPDTable();
+}
+
+function scoreColor(score) {
+  // Green for high, yellow for medium, interpolated
+  if (score >= 0.95) return '#22c55e';
+  if (score >= 0.90) return '#4ade80';
+  if (score >= 0.85) return '#a3e635';
+  if (score >= 0.80) return '#facc15';
+  return '#fbbf24';
+}
+
+function renderPDTable() {
+  if (!EVIDENCE) return;
+  const query = document.getElementById('pdSearch').value.toLowerCase().trim();
+  const pwFilter = document.getElementById('pdPathwayFilter').value;
+  const hypOnly = document.getElementById('pdHypOnly').checked;
+  const minScore = document.getElementById('pdScoreSlider').value / 100;
+
+  // Filter
+  let filtered = EVIDENCE.candidates.filter(c => {
+    if (query && !c.gene.toLowerCase().includes(query) && !c.product.toLowerCase().includes(query) && !c.pathway.toLowerCase().includes(query)) return false;
+    if (pwFilter && c.pathwayId !== pwFilter) return false;
+    if (hypOnly && !c.hyp) return false;
+    if (c.score < minScore) return false;
+    return true;
+  });
+
+  // Sort
+  const col = pdSortCol;
+  const dir = pdSortAsc ? 1 : -1;
+  filtered.sort((a, b) => {
+    let va, vb;
+    if (col === 'rank') { va = a.rank; vb = b.rank; }
+    else if (col === 'gene') { va = a.gene; vb = b.gene; return dir * va.localeCompare(vb); }
+    else if (col === 'product') { va = a.product; vb = b.product; return dir * va.localeCompare(vb); }
+    else if (col === 'pathway') { va = a.pathway; vb = b.pathway; return dir * va.localeCompare(vb); }
+    else if (col === 'score') { va = a.score; vb = b.score; }
+    else if (col === 'maxCorr') { va = a.maxCorr; vb = b.maxCorr; }
+    else if (col === 'meanString') { va = a.meanString; vb = b.meanString; }
+    else { va = a.rank; vb = b.rank; }
+    return dir * (va - vb);
+  });
+
+  pdFiltered = filtered;
+
+  const tbody = document.getElementById('pdTableBody');
+  tbody.innerHTML = filtered.map((c, idx) => {
+    const sel = idx === pdSelectedIdx ? ' sel' : '';
+    const badges = [];
+    if (c.hyp) badges.push('<span class="pd-badge pd-badge-hyp">HYP</span>');
+    badges.push(`<span class="pd-badge pd-badge-partners">${c.nPartners}P</span>`);
+    return `<tr class="${sel}" data-idx="${idx}">
+      <td style="color:var(--ft);font-family:var(--fm);font-size:11px">${c.rank}</td>
+      <td><span class="pd-gene">${c.gene}</span></td>
+      <td><span class="pd-product" title="${c.product}">${c.product}</span></td>
+      <td><span class="pd-pathway" title="${c.pathway}">${c.pathway.replace(/ \(virulent.*\)/, '')}</span></td>
+      <td><span class="pd-score" style="color:${scoreColor(c.score)}">${c.score.toFixed(3)}</span></td>
+      <td><span class="pd-maxr">${c.maxCorr.toFixed(3)}</span></td>
+      <td><span class="pd-str">${c.meanString.toFixed(3)}</span></td>
+      <td><div class="pd-badges">${badges.join('')}</div></td>
+    </tr>`;
+  }).join('');
+
+  // Click handler
+  tbody.querySelectorAll('tr').forEach(row => {
+    row.addEventListener('click', () => {
+      const idx = +row.dataset.idx;
+      pdSelectedIdx = idx;
+      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('sel'));
+      row.classList.add('sel');
+      showEvidenceCard(pdFiltered[idx]);
+    });
+  });
+
+  document.getElementById('pdTableFooter').textContent = `Showing ${filtered.length} of ${EVIDENCE.candidates.length} candidates`;
+}
+
+// ===== EVIDENCE DETAIL CARD =====
+function showEvidenceCard(cand) {
+  if (!cand) return;
+  document.getElementById('pdEmpty').style.display = 'none';
+  const card = document.getElementById('pdCard');
+  card.style.display = 'block';
+
+  // Gather STRING pair details for this gene and its partners
+  const partners = cand.partners.split(',');
+  const stringDetails = {};
+  // Aggregate string evidence for this candidate's partners
+  partners.forEach(p => {
+    const pair = EVIDENCE.stringPairs.find(sp =>
+      (sp.a === cand.gene && sp.b === p) || (sp.b === cand.gene && sp.a === p)
+    );
+    if (pair) stringDetails[p] = pair;
+  });
+
+  // Compute average STRING sub-scores across partners
+  const pairsFound = Object.values(stringDetails);
+  let avgExp = 0, avgCoev = 0, avgCtx = 0, avgDb = 0, avgTxt = 0, avgStrTotal = 0;
+  if (pairsFound.length > 0) {
+    pairsFound.forEach(p => {
+      avgExp += p.exp; avgCoev += p.coev; avgCtx += p.ctx; avgDb += p.db; avgTxt += p.txt; avgStrTotal += p.score;
+    });
+    const n = pairsFound.length;
+    avgExp /= n; avgCoev /= n; avgCtx /= n; avgDb /= n; avgTxt /= n; avgStrTotal /= n;
+  }
+
+  // Evidence bars data
+  const bars = [
+    { label: 'Tn-seq corr.', value: cand.maxCorr, max: 1, color: '#2dd4bf', weight: '0.30' },
+    { label: 'STRING exp.', value: avgExp, max: 1, color: '#60a5fa', weight: '0.20' },
+    { label: 'Co-evolution', value: avgCoev, max: 1, color: '#818cf8', weight: '0.15' },
+    { label: 'Genomic ctx.', value: avgCtx, max: 1, color: '#a78bfa', weight: '0.10' },
+    { label: 'Database', value: avgDb, max: 1, color: '#f472b6', weight: '0.10' },
+    { label: 'Textmining', value: avgTxt, max: 1, color: '#fb923c', weight: '0.10' },
+    { label: 'Composite', value: cand.score, max: 1, color: '#22c55e', weight: '' },
+  ];
+
+  // KEGG link
+  const keggUrl = `https://www.genome.jp/kegg-bin/show_pathway?${cand.pathwayId}`;
+  const cleanPathway = cand.pathway.replace(/ \(virulent.*\)/, '');
+
+  // Build bar chart SVG
+  const barW = 160, barH = 16;
+  const barsHtml = bars.map(b => {
+    const w = Math.max((b.value / b.max) * barW, 0);
+    const isComposite = b.label === 'Composite';
+    return `<div class="ev-bar-row">
+      <span class="ev-bar-label">${b.label}${b.weight ? ` <span style="opacity:.5;font-size:9px">(w=${b.weight})</span>` : ''}</span>
+      <svg class="ev-bar-svg" viewBox="0 0 ${barW} ${barH}" preserveAspectRatio="none">
+        <rect x="0" y="0" width="${barW}" height="${barH}" rx="3" fill="var(--sf2)"/>
+        <rect x="0" y="0" width="${w.toFixed(1)}" height="${barH}" rx="3" fill="${b.color}" opacity="${isComposite ? 1 : 0.8}"/>
+      </svg>
+      <span class="ev-bar-val" style="color:${b.color}">${b.value.toFixed(3)}</span>
+    </div>`;
+  }).join('');
+
+  // Partners list
+  const partnersHtml = partners.map(p => {
+    const strScore = stringDetails[p] ? ` (str=${stringDetails[p].score.toFixed(2)})` : '';
+    return `<button class="ev-partner" onclick="switchToGI('${p}')" title="View ${p} in GI Explorer">${p}${strScore}</button>`;
+  }).join('');
+
+  card.innerHTML = `
+    <div class="ev-card">
+      <div class="ev-card-gene">${cand.gene}${cand.hyp ? ' <span class="pd-badge pd-badge-hyp" style="font-size:10px;vertical-align:middle">HYPOTHETICAL</span>' : ''}</div>
+      <div class="ev-card-product">${cand.product}</div>
+      <div class="ev-card-pathway">Target: <a href="${keggUrl}" target="_blank" rel="noopener">${cleanPathway}</a></div>
+      <div style="font-size:11px;color:var(--ft);margin-top:2px">${cand.pathwayId.toUpperCase()}</div>
+
+      <div class="ev-card-section">
+        <h4>Score Breakdown</h4>
+        ${barsHtml}
+      </div>
+
+      <div class="ev-summary">${cand.evidence}</div>
+
+      <div class="ev-card-section">
+        <h4>Pathway Partners (${partners.length})</h4>
+        <div class="ev-partners">${partnersHtml}</div>
+      </div>
+
+      <button class="ev-gi-btn" onclick="switchToGI('${cand.gene}')">▶ View ${cand.gene} in GI Explorer</button>
+    </div>
+  `;
+}
+
+// ===== INIT =====
+Promise.all([
+  loadData(),
+  loadEvidenceData()
+]).then(() => {
   document.getElementById('loadStatus').textContent = 'Building index...';
   setTimeout(() => {
     buildReverseIndex();
+    initPathwayDiscovery();
     document.getElementById('loadingOverlay').classList.add('hidden');
   }, 100);
 });
