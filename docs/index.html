@@ -379,6 +379,7 @@ const HEADER_SIZE = 8; // 2x uint32
 
 // Pathway Discovery data
 let EVIDENCE = null; // loaded from evidence_data.json
+let GANN = {};       // gene annotations (names, aliases, uniprot, localization)
 
 // ===== LOAD DATA =====
 async function loadData() {
@@ -698,7 +699,15 @@ function renderCorrelations() {
 // ===== SEARCH =====
 function searchGenes(q) {
   q = q.toLowerCase();
-  return GENES.filter(g => g.i.toLowerCase().includes(q) || g.d.toLowerCase().includes(q)).slice(0, 12);
+  return GENES.filter(g => {
+    if (g.i.toLowerCase().includes(q) || g.d.toLowerCase().includes(q)) return true;
+    // Search gene annotations: gene name + aliases
+    const ann = GANN[g.i];
+    if (!ann) return false;
+    if (ann.g && ann.g.toLowerCase().includes(q)) return true;
+    if (ann.a && ann.a.some(a => a.toLowerCase().includes(q))) return true;
+    return false;
+  }).slice(0, 16);
 }
 
 function selectGene(geneId) {
@@ -715,7 +724,9 @@ function selectGene(geneId) {
   document.getElementById('legendBar').classList.remove('hidden');
   document.getElementById('legendHL').classList.add('hidden');
 
-  document.getElementById('queryGeneId').textContent = geneId;
+  const ann = GANN[geneId] || {};
+  const geneName = ann.g ? ` (${ann.g})` : '';
+  document.getElementById('queryGeneId').textContent = geneId + geneName;
   document.getElementById('queryGeneDesc').textContent = '— ' + GENES[gIdx].d;
 
   currentData = getAllInteractions(gIdx);
@@ -732,9 +743,12 @@ document.getElementById('searchInput').addEventListener('input', e => {
   if (q.length < 2) { dd.classList.remove('show'); return; }
   const results = searchGenes(q);
   if (!results.length) { dd.classList.remove('show'); return; }
-  dd.innerHTML = results.map(g =>
-    `<button data-id="${g.i}"><span class="gid">${g.i}</span><span class="gdesc">${g.d}</span></button>`
-  ).join('');
+  dd.innerHTML = results.map(g => {
+    const ann = GANN[g.i];
+    const geneName = ann && ann.g ? ` (${ann.g})` : '';
+    const loc = ann && ann.l ? `<span style="color:var(--ft);font-size:10px;margin-left:6px">${ann.l}</span>` : '';
+    return `<button data-id="${g.i}"><span class="gid">${g.i}${geneName}</span><span class="gdesc">${g.d}${loc}</span></button>`;
+  }).join('');
   dd.classList.add('show');
   dd.querySelectorAll('button').forEach(btn =>
     btn.addEventListener('click', () => selectGene(btn.dataset.id))
@@ -806,6 +820,15 @@ async function loadEvidenceData() {
   }
 }
 
+async function loadAnnotations() {
+  try {
+    const resp = await fetch('gene_annotations.json');
+    GANN = await resp.json();
+  } catch(e) {
+    console.warn('Could not load gene_annotations.json', e);
+  }
+}
+
 function initPathwayDiscovery() {
   if (!EVIDENCE) return;
   const m = EVIDENCE.meta;
@@ -860,7 +883,11 @@ function renderPDTable() {
   const minR = document.getElementById('pdScoreSlider').value / 100;
 
   let filtered = EVIDENCE.genes.filter(g => {
-    if (query && !g.gene.toLowerCase().includes(query) && !g.product.toLowerCase().includes(query)) return false;
+    if (query) {
+      const ann = GANN[g.gene] || {};
+      const allNames = [g.gene, g.product, ann.g || '', ...(ann.a || [])].map(s => s.toLowerCase());
+      if (!allNames.some(n => n.includes(query))) return false;
+    }
     if (hypOnly && !g.hyp) return false;
     if (g.maxCorr < minR) return false;
     if (withString) {
@@ -892,10 +919,12 @@ function renderPDTable() {
   tbody.innerHTML = filtered.map((g, idx) => {
     const sel = idx === pdSelectedIdx ? ' sel' : '';
     const topStr = g.topPartners[0] ? (g.topPartners[0].strCombined || 0) : 0;
+    const ann = GANN[g.gene] || {};
+    const geneName = ann.g ? `<span style="color:var(--mt);font-size:10px;display:block">${ann.g}</span>` : '';
     const badges = g.hyp ? '<span class="pd-badge pd-badge-hyp">HYP</span>' : '';
     return `<tr class="${sel}" data-idx="${idx}">
       <td style="color:var(--ft);font-family:var(--fm);font-size:11px">${idx+1}</td>
-      <td><span class="pd-gene">${g.gene}</span></td>
+      <td><span class="pd-gene">${g.gene}</span>${geneName}</td>
       <td><span class="pd-product" title="${g.product}">${g.product}</span></td>
       <td><span class="pd-score" style="color:${corrColor2(g.maxCorr)}">${g.maxCorr.toFixed(3)}</span></td>
       <td><span class="pd-maxr" style="color:var(--mt)">${g.nPartners}</span></td>
@@ -973,10 +1002,20 @@ function showEvidenceCard(geneEntry) {
     return `<a href="https://www.genome.jp/kegg-bin/show_pathway?${pid}" target="_blank" rel="noopener" style="font-size:11px;display:inline-block;margin:2px 0">${pw.name}</a>`;
   }).filter(Boolean).join('<br>');
 
+  // Gene annotation metadata
+  const ann = GANN[g.gene] || {};
+  const geneName = ann.g ? `<span style="font-size:13px;color:var(--mt);font-weight:400"> (${ann.g})</span>` : '';
+  const uniprotLink = ann.u ? `<a href="https://www.uniprot.org/uniprotkb/${ann.u}" target="_blank" rel="noopener" style="font-size:11px">UniProt: ${ann.u}</a>` : '';
+  const locBadge = ann.l ? `<span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;background:color-mix(in srgb,var(--bl) 15%,transparent);color:var(--bl);border:1px solid color-mix(in srgb,var(--bl) 25%,transparent)">${ann.l}</span>` : '';
+  const essBadge = ann.e ? `<span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;background:color-mix(in srgb,${ann.e === 'E' ? 'var(--rd)' : 'var(--am)'} 15%,transparent);color:${ann.e === 'E' ? 'var(--rd)' : 'var(--am)'};border:1px solid color-mix(in srgb,${ann.e === 'E' ? 'var(--rd)' : 'var(--am)'} 25%,transparent)">${ann.e === 'E' ? 'Essential' : ann.e === 'LE' ? 'Likely Essential' : ann.e}</span>` : '';
+  const aliasText = ann.a && ann.a.length ? `<div style="font-size:10px;color:var(--ft);margin-top:2px">Aliases: ${ann.a.join(', ')}</div>` : '';
+
   card.innerHTML = `
     <div class="ev-card">
-      <div class="ev-card-gene">${g.gene}${g.hyp ? ' <span class="pd-badge pd-badge-hyp" style="font-size:10px;vertical-align:middle">HYPOTHETICAL</span>' : ''}</div>
+      <div class="ev-card-gene">${g.gene}${geneName}${g.hyp ? ' <span class="pd-badge pd-badge-hyp" style="font-size:10px;vertical-align:middle">HYPOTHETICAL</span>' : ''}</div>
       <div class="ev-card-product">${g.product}</div>
+      <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;align-items:center">${locBadge}${essBadge}${uniprotLink ? `<span style="margin-left:auto">${uniprotLink}</span>` : ''}</div>
+      ${aliasText}
       ${pwHtml ? `<div style="margin-top:6px;font-size:11px;color:var(--mt)">KEGG: ${pwHtml}</div>` : ''}
 
       <div class="ev-card-section">
@@ -1003,7 +1042,8 @@ function showEvidenceCard(geneEntry) {
 // ===== INIT =====
 Promise.all([
   loadData(),
-  loadEvidenceData()
+  loadEvidenceData(),
+  loadAnnotations()
 ]).then(() => {
   document.getElementById('loadStatus').textContent = 'Building index...';
   setTimeout(() => {
