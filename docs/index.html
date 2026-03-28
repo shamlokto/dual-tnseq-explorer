@@ -232,7 +232,7 @@ nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 88%,
   <div class="logo"><span>Dual Tn-seq</span> Explorer</div>
   <div class="nav-tabs">
     <button class="nav-tab active" data-view="gi" onclick="switchTab('gi')">Genetic Interactions</button>
-    <button class="nav-tab" data-view="pd" onclick="switchTab('pd')">Pathway Discovery</button>
+    <button class="nav-tab" data-view="pd" onclick="switchTab('pd')">Correlated Pairs + STRING</button>
   </div>
   <div class="nav-r">
     <span style="font-style:italic">S. pneumoniae D39</span>
@@ -301,15 +301,15 @@ nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 88%,
 <div class="app-view view-pd" id="viewPD">
   <!-- Stats Bar -->
   <div class="pd-stats" id="pdStats">
-    <div class="pd-stat"><span class="val" id="pdStatCandidates">350</span><span class="lab">candidates</span></div>
+    <div class="pd-stat"><span class="val" id="pdStatGenes">—</span><span class="lab">genes</span></div>
     <div class="pd-stat-div"></div>
-    <div class="pd-stat"><span class="val" id="pdStatPathways">36</span><span class="lab">pathways</span></div>
+    <div class="pd-stat"><span class="val" id="pdStatPairs">—</span><span class="lab">correlated pairs</span></div>
     <div class="pd-stat-div"></div>
-    <div class="pd-stat"><span class="val" id="pdStatHyp">32</span><span class="lab">hypothetical</span></div>
+    <div class="pd-stat"><span class="val" id="pdStatHyp">—</span><span class="lab">hypothetical</span></div>
     <div class="pd-stat-div"></div>
-    <div class="pd-stat"><span class="val" id="pdStatAUC">0.621</span><span class="lab">model AUC</span></div>
+    <div class="pd-stat"><span class="val">|r| ≥ 0.4</span><span class="lab">threshold</span></div>
     <div class="pd-stat-div"></div>
-    <div class="pd-stat"><span class="val">7</span><span class="lab">evidence layers</span></div>
+    <div class="pd-stat"><span class="val">STRING v12</span><span class="lab">evidence source</span></div>
   </div>
 
   <!-- Left: Candidate Table -->
@@ -317,32 +317,31 @@ nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 88%,
     <div class="pd-filters">
       <div class="pd-filter-row">
         <input class="pd-search" id="pdSearch" placeholder="Search gene or product..." autocomplete="off">
-        <select class="pd-select" id="pdPathwayFilter"><option value="">All pathways</option></select>
+        <label class="pd-check"><input type="checkbox" id="pdWithString"> Has STRING data</label>
       </div>
       <div class="pd-filter-row">
         <label class="pd-check"><input type="checkbox" id="pdHypOnly"> Hypothetical only</label>
         <div class="pd-slider-wrap">
-          <span>Score ≥</span>
-          <input type="range" id="pdScoreSlider" min="0" max="100" value="0" step="1">
-          <span class="sv" id="pdScoreVal">0.00</span>
+          <span>|r| ≥</span>
+          <input type="range" id="pdScoreSlider" min="40" max="100" value="40" step="1">
+          <span class="sv" id="pdScoreVal">0.40</span>
         </div>
       </div>
     </div>
     <div class="pd-table-wrap">
       <table class="pd-table">
         <colgroup>
-          <col class="col-rank"><col class="col-gene"><col class="col-product"><col class="col-pathway"><col class="col-score"><col class="col-maxr"><col class="col-str"><col class="col-badges">
+          <col style="width:36px"><col style="width:86px"><col><col style="width:74px"><col style="width:60px"><col style="width:66px"><col style="width:40px">
         </colgroup>
         <thead>
           <tr id="pdTableHead">
-            <th data-col="rank" class="sorted">#<span class="sort-arrow">▲</span></th>
+            <th data-col="rank" class="sorted">#<span class="sort-arrow">▼</span></th>
             <th data-col="gene">Gene<span class="sort-arrow">▲</span></th>
             <th data-col="product">Product<span class="sort-arrow">▲</span></th>
-            <th data-col="pathway">Pathway<span class="sort-arrow">▲</span></th>
-            <th data-col="score">Score<span class="sort-arrow">▲</span></th>
-            <th data-col="maxCorr">Max |r|<span class="sort-arrow">▲</span></th>
-            <th data-col="meanString">STRING<span class="sort-arrow">▲</span></th>
-            <th data-col="badges">Evidence<span class="sort-arrow">▲</span></th>
+            <th data-col="maxCorr">Top |r|<span class="sort-arrow">▲</span></th>
+            <th data-col="nPartners">Pairs<span class="sort-arrow">▲</span></th>
+            <th data-col="strCombined">STRING<span class="sort-arrow">▲</span></th>
+            <th data-col="badges"><span class="sort-arrow"></span></th>
           </tr>
         </thead>
         <tbody id="pdTableBody"></tbody>
@@ -354,13 +353,13 @@ nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 88%,
   <!-- Right: Evidence Detail -->
   <div class="pd-right">
     <div class="pd-right-header">
-      <h3>Evidence Detail</h3>
-      <p>Select a candidate to view evidence breakdown</p>
+      <h3>STRING Evidence</h3>
+      <p>Select a gene to view STRING interaction channels</p>
     </div>
     <div class="pd-card-wrap" id="pdCardWrap">
       <div class="pd-empty" id="pdEmpty">
         <div class="big">⧉</div>
-        <p>Click a candidate row to view<br>detailed evidence breakdown</p>
+        <p>Click a gene row to view<br>STRING evidence channels &amp; correlated partners</p>
       </div>
       <div id="pdCard" style="display:none"></div>
     </div>
@@ -794,11 +793,10 @@ function switchToGI(geneId) {
 
 // ===== PATHWAY DISCOVERY LOGIC =====
 let pdSortCol = 'rank';
-let pdSortAsc = true;
-let pdSelectedIdx = -1; // index into filtered list
-let pdFiltered = []; // current filtered+sorted candidates
+let pdSortAsc = false; // descending by default (highest |r| first)
+let pdSelectedIdx = -1;
+let pdFiltered = [];
 
-// Load evidence data (called in parallel with main data)
 async function loadEvidenceData() {
   try {
     const resp = await fetch('evidence_data.json');
@@ -811,37 +809,16 @@ async function loadEvidenceData() {
 function initPathwayDiscovery() {
   if (!EVIDENCE) return;
   const m = EVIDENCE.meta;
-  document.getElementById('pdStatCandidates').textContent = m.totalCandidates;
-  document.getElementById('pdStatPathways').textContent = m.totalPathways;
-  // Count unique hypothetical genes
-  const hypGenes = new Set(EVIDENCE.candidates.filter(c => c.hyp).map(c => c.gene));
-  document.getElementById('pdStatHyp').textContent = hypGenes.size;
-  document.getElementById('pdStatAUC').textContent = m.aucRoc.toFixed(3);
-
-  // Populate pathway dropdown
-  const sel = document.getElementById('pdPathwayFilter');
-  const pwNames = Object.entries(EVIDENCE.pathways).map(([id, p]) => ({id, name: p.name}));
-  pwNames.sort((a,b) => a.name.localeCompare(b.name));
-  pwNames.forEach(pw => {
-    const opt = document.createElement('option');
-    opt.value = pw.id;
-    opt.textContent = pw.name;
-    sel.appendChild(opt);
-  });
-
-  // Set score slider range based on data
-  const scores = EVIDENCE.candidates.map(c => c.score);
-  const minScore = Math.floor(Math.min(...scores) * 100);
-  const slider = document.getElementById('pdScoreSlider');
-  slider.min = minScore;
-  slider.max = 100;
-  slider.value = minScore;
-  document.getElementById('pdScoreVal').textContent = (minScore/100).toFixed(2);
+  document.getElementById('pdStatGenes').textContent = m.totalGenes.toLocaleString();
+  document.getElementById('pdStatPairs').textContent = m.totalPairs.toLocaleString();
+  const hypCount = EVIDENCE.genes.filter(g => g.hyp).length;
+  document.getElementById('pdStatHyp').textContent = hypCount;
 
   // Event listeners
   document.getElementById('pdSearch').addEventListener('input', renderPDTable);
-  document.getElementById('pdPathwayFilter').addEventListener('change', renderPDTable);
+  document.getElementById('pdWithString').addEventListener('change', renderPDTable);
   document.getElementById('pdHypOnly').addEventListener('change', renderPDTable);
+  const slider = document.getElementById('pdScoreSlider');
   slider.addEventListener('input', () => {
     document.getElementById('pdScoreVal').textContent = (slider.value/100).toFixed(2);
     renderPDTable();
@@ -852,9 +829,9 @@ function initPathwayDiscovery() {
     const th = e.target.closest('th');
     if (!th || !th.dataset.col) return;
     const col = th.dataset.col;
-    if (col === 'badges') return; // not sortable
+    if (col === 'badges') return;
     if (pdSortCol === col) pdSortAsc = !pdSortAsc;
-    else { pdSortCol = col; pdSortAsc = col === 'rank' || col === 'gene' || col === 'product' || col === 'pathway'; }
+    else { pdSortCol = col; pdSortAsc = (col === 'gene' || col === 'product'); }
     document.querySelectorAll('#pdTableHead th').forEach(t => {
       t.classList.remove('sorted');
       const arrow = t.querySelector('.sort-arrow');
@@ -868,68 +845,65 @@ function initPathwayDiscovery() {
   renderPDTable();
 }
 
-function scoreColor(score) {
-  // Green for high, yellow for medium, interpolated
-  if (score >= 0.95) return '#22c55e';
-  if (score >= 0.90) return '#4ade80';
-  if (score >= 0.85) return '#a3e635';
-  if (score >= 0.80) return '#facc15';
+function corrColor2(r) {
+  if (r >= 0.8) return '#22c55e';
+  if (r >= 0.6) return '#4ade80';
+  if (r >= 0.5) return '#a3e635';
   return '#fbbf24';
 }
 
 function renderPDTable() {
   if (!EVIDENCE) return;
   const query = document.getElementById('pdSearch').value.toLowerCase().trim();
-  const pwFilter = document.getElementById('pdPathwayFilter').value;
+  const withString = document.getElementById('pdWithString').checked;
   const hypOnly = document.getElementById('pdHypOnly').checked;
-  const minScore = document.getElementById('pdScoreSlider').value / 100;
+  const minR = document.getElementById('pdScoreSlider').value / 100;
 
-  // Filter
-  let filtered = EVIDENCE.candidates.filter(c => {
-    if (query && !c.gene.toLowerCase().includes(query) && !c.product.toLowerCase().includes(query) && !c.pathway.toLowerCase().includes(query)) return false;
-    if (pwFilter && c.pathwayId !== pwFilter) return false;
-    if (hypOnly && !c.hyp) return false;
-    if (c.score < minScore) return false;
+  let filtered = EVIDENCE.genes.filter(g => {
+    if (query && !g.gene.toLowerCase().includes(query) && !g.product.toLowerCase().includes(query)) return false;
+    if (hypOnly && !g.hyp) return false;
+    if (g.maxCorr < minR) return false;
+    if (withString) {
+      // Must have at least one partner with STRING data
+      const hasStr = g.topPartners.some(p => (p.strCombined || 0) > 0);
+      if (!hasStr) return false;
+    }
     return true;
   });
 
-  // Sort
   const col = pdSortCol;
   const dir = pdSortAsc ? 1 : -1;
   filtered.sort((a, b) => {
-    let va, vb;
-    if (col === 'rank') { va = a.rank; vb = b.rank; }
-    else if (col === 'gene') { va = a.gene; vb = b.gene; return dir * va.localeCompare(vb); }
-    else if (col === 'product') { va = a.product; vb = b.product; return dir * va.localeCompare(vb); }
-    else if (col === 'pathway') { va = a.pathway; vb = b.pathway; return dir * va.localeCompare(vb); }
-    else if (col === 'score') { va = a.score; vb = b.score; }
-    else if (col === 'maxCorr') { va = a.maxCorr; vb = b.maxCorr; }
-    else if (col === 'meanString') { va = a.meanString; vb = b.meanString; }
-    else { va = a.rank; vb = b.rank; }
-    return dir * (va - vb);
+    if (col === 'gene') return dir * a.gene.localeCompare(b.gene);
+    if (col === 'product') return dir * a.product.localeCompare(b.product);
+    if (col === 'maxCorr' || col === 'rank') return dir * (a.maxCorr - b.maxCorr);
+    if (col === 'nPartners') return dir * (a.nPartners - b.nPartners);
+    if (col === 'strCombined') {
+      const sa = a.topPartners[0] ? (a.topPartners[0].strCombined || 0) : 0;
+      const sb = b.topPartners[0] ? (b.topPartners[0].strCombined || 0) : 0;
+      return dir * (sa - sb);
+    }
+    return dir * (a.maxCorr - b.maxCorr);
   });
 
   pdFiltered = filtered;
 
   const tbody = document.getElementById('pdTableBody');
-  tbody.innerHTML = filtered.map((c, idx) => {
+  tbody.innerHTML = filtered.map((g, idx) => {
     const sel = idx === pdSelectedIdx ? ' sel' : '';
-    const badges = [];
-    if (c.hyp) badges.push('<span class="pd-badge pd-badge-hyp">HYP</span>');
-    badges.push(`<span class="pd-badge pd-badge-partners">${c.nPartners}P</span>`);
+    const topStr = g.topPartners[0] ? (g.topPartners[0].strCombined || 0) : 0;
+    const badges = g.hyp ? '<span class="pd-badge pd-badge-hyp">HYP</span>' : '';
     return `<tr class="${sel}" data-idx="${idx}">
-      <td style="color:var(--ft);font-family:var(--fm);font-size:11px">${c.rank}</td>
-      <td><span class="pd-gene">${c.gene}</span></td>
-      <td><span class="pd-product" title="${c.product}">${c.product}</span></td>
-      <td><span class="pd-pathway" title="${c.pathway}">${c.pathway.replace(/ \(virulent.*\)/, '')}</span></td>
-      <td><span class="pd-score" style="color:${scoreColor(c.score)}">${c.score.toFixed(3)}</span></td>
-      <td><span class="pd-maxr">${c.maxCorr.toFixed(3)}</span></td>
-      <td><span class="pd-str">${c.meanString.toFixed(3)}</span></td>
-      <td><div class="pd-badges">${badges.join('')}</div></td>
+      <td style="color:var(--ft);font-family:var(--fm);font-size:11px">${idx+1}</td>
+      <td><span class="pd-gene">${g.gene}</span></td>
+      <td><span class="pd-product" title="${g.product}">${g.product}</span></td>
+      <td><span class="pd-score" style="color:${corrColor2(g.maxCorr)}">${g.maxCorr.toFixed(3)}</span></td>
+      <td><span class="pd-maxr" style="color:var(--mt)">${g.nPartners}</span></td>
+      <td><span class="pd-str">${topStr > 0 ? topStr.toFixed(2) : '<span style="color:var(--ft)">—</span>'}</span></td>
+      <td><div class="pd-badges">${badges}</div></td>
     </tr>`;
   }).join('');
 
-  // Click handler
   tbody.querySelectorAll('tr').forEach(row => {
     row.addEventListener('click', () => {
       const idx = +row.dataset.idx;
@@ -940,94 +914,88 @@ function renderPDTable() {
     });
   });
 
-  document.getElementById('pdTableFooter').textContent = `Showing ${filtered.length} of ${EVIDENCE.candidates.length} candidates`;
+  document.getElementById('pdTableFooter').textContent = `Showing ${filtered.length} of ${EVIDENCE.genes.length} genes (ranked by Tn-seq |r|)`;
 }
 
 // ===== EVIDENCE DETAIL CARD =====
-function showEvidenceCard(cand) {
-  if (!cand) return;
+function showEvidenceCard(geneEntry) {
+  if (!geneEntry) return;
   document.getElementById('pdEmpty').style.display = 'none';
   const card = document.getElementById('pdCard');
   card.style.display = 'block';
 
-  // Gather STRING pair details for this gene and its partners
-  const partners = cand.partners.split(',');
-  const stringDetails = {};
-  // Aggregate string evidence for this candidate's partners
-  partners.forEach(p => {
-    const pair = EVIDENCE.stringPairs.find(sp =>
-      (sp.a === cand.gene && sp.b === p) || (sp.b === cand.gene && sp.a === p)
-    );
-    if (pair) stringDetails[p] = pair;
-  });
+  const g = geneEntry;
+  const partners = g.topPartners || [];
 
-  // Compute average STRING sub-scores across partners
-  const pairsFound = Object.values(stringDetails);
-  let avgExp = 0, avgCoev = 0, avgCtx = 0, avgDb = 0, avgTxt = 0, avgStrTotal = 0;
-  if (pairsFound.length > 0) {
-    pairsFound.forEach(p => {
-      avgExp += p.exp; avgCoev += p.coev; avgCtx += p.ctx; avgDb += p.db; avgTxt += p.txt; avgStrTotal += p.score;
-    });
-    const n = pairsFound.length;
-    avgExp /= n; avgCoev /= n; avgCtx /= n; avgDb /= n; avgTxt /= n; avgStrTotal /= n;
+  // For the bar chart, show STRING sub-scores from the TOP correlated partner
+  const topP = partners[0];
+  const barW = 160, barH = 16;
+  let barsHtml = '';
+  if (topP) {
+    const channels = [
+      { label: 'Neighborhood', key: 'strNeighborhood', color: '#60a5fa' },
+      { label: 'Fusion', key: 'strFusion', color: '#818cf8' },
+      { label: 'Cooccurrence', key: 'strCooccurrence', color: '#a78bfa' },
+      { label: 'Coexpression', key: 'strCoexpression', color: '#c084fc' },
+      { label: 'Experimental', key: 'strExperimental', color: '#f472b6' },
+      { label: 'Database', key: 'strDatabase', color: '#fb923c' },
+      { label: 'Textmining', key: 'strTextmining', color: '#fbbf24' },
+      { label: 'Combined', key: 'strCombined', color: '#2dd4bf' },
+    ];
+    barsHtml = channels.map(ch => {
+      const val = topP[ch.key] || 0;
+      const w = Math.max((val / 1) * barW, 0);
+      return `<div class="ev-bar-row">
+        <span class="ev-bar-label">${ch.label}</span>
+        <svg class="ev-bar-svg" viewBox="0 0 ${barW} ${barH}" preserveAspectRatio="none">
+          <rect x="0" y="0" width="${barW}" height="${barH}" rx="3" fill="var(--sf2)"/>
+          <rect x="0" y="0" width="${w.toFixed(1)}" height="${barH}" rx="3" fill="${ch.color}" opacity="0.85"/>
+        </svg>
+        <span class="ev-bar-val" style="color:${val > 0 ? ch.color : 'var(--ft)'}">${val > 0 ? val.toFixed(3) : '\u2014'}</span>
+      </div>`;
+    }).join('');
+  } else {
+    barsHtml = '<div style="color:var(--ft);font-size:11px;padding:8px 0">No STRING data available for top partner</div>';
   }
 
-  // Evidence bars data
-  const bars = [
-    { label: 'Tn-seq corr.', value: cand.maxCorr, max: 1, color: '#2dd4bf', weight: '0.30' },
-    { label: 'STRING exp.', value: avgExp, max: 1, color: '#60a5fa', weight: '0.20' },
-    { label: 'Co-evolution', value: avgCoev, max: 1, color: '#818cf8', weight: '0.15' },
-    { label: 'Genomic ctx.', value: avgCtx, max: 1, color: '#a78bfa', weight: '0.10' },
-    { label: 'Database', value: avgDb, max: 1, color: '#f472b6', weight: '0.10' },
-    { label: 'Textmining', value: avgTxt, max: 1, color: '#fb923c', weight: '0.10' },
-    { label: 'Composite', value: cand.score, max: 1, color: '#22c55e', weight: '' },
-  ];
-
-  // KEGG link
-  const keggUrl = `https://www.genome.jp/kegg-bin/show_pathway?${cand.pathwayId}`;
-  const cleanPathway = cand.pathway.replace(/ \(virulent.*\)/, '');
-
-  // Build bar chart SVG
-  const barW = 160, barH = 16;
-  const barsHtml = bars.map(b => {
-    const w = Math.max((b.value / b.max) * barW, 0);
-    const isComposite = b.label === 'Composite';
-    return `<div class="ev-bar-row">
-      <span class="ev-bar-label">${b.label}${b.weight ? ` <span style="opacity:.5;font-size:9px">(w=${b.weight})</span>` : ''}</span>
-      <svg class="ev-bar-svg" viewBox="0 0 ${barW} ${barH}" preserveAspectRatio="none">
-        <rect x="0" y="0" width="${barW}" height="${barH}" rx="3" fill="var(--sf2)"/>
-        <rect x="0" y="0" width="${w.toFixed(1)}" height="${barH}" rx="3" fill="${b.color}" opacity="${isComposite ? 1 : 0.8}"/>
-      </svg>
-      <span class="ev-bar-val" style="color:${b.color}">${b.value.toFixed(3)}</span>
-    </div>`;
-  }).join('');
-
-  // Partners list
+  // Partners table (sorted by |r|)
   const partnersHtml = partners.map(p => {
-    const strScore = stringDetails[p] ? ` (str=${stringDetails[p].score.toFixed(2)})` : '';
-    return `<button class="ev-partner" onclick="switchToGI('${p}')" title="View ${p} in GI Explorer">${p}${strScore}</button>`;
+    const strVal = p.strCombined || 0;
+    const strLabel = strVal > 0 ? `str=${strVal.toFixed(2)}` : 'no STRING';
+    const strStyle = strVal > 0 ? '' : 'opacity:0.4';
+    return `<button class="ev-partner" style="${strStyle}" onclick="switchToGI('${p.partner}')" title="r=${p.r.toFixed(3)}, STRING=${strVal.toFixed(2)}">${p.partner} <span style="font-size:9px;opacity:.7">r=${p.r.toFixed(2)}, ${strLabel}</span></button>`;
   }).join('');
+
+  // KEGG pathway list for this gene
+  const pwHtml = (g.pathways || []).map(pid => {
+    const pw = EVIDENCE.pathways[pid];
+    if (!pw) return '';
+    return `<a href="https://www.genome.jp/kegg-bin/show_pathway?${pid}" target="_blank" rel="noopener" style="font-size:11px;display:inline-block;margin:2px 0">${pw.name}</a>`;
+  }).filter(Boolean).join('<br>');
 
   card.innerHTML = `
     <div class="ev-card">
-      <div class="ev-card-gene">${cand.gene}${cand.hyp ? ' <span class="pd-badge pd-badge-hyp" style="font-size:10px;vertical-align:middle">HYPOTHETICAL</span>' : ''}</div>
-      <div class="ev-card-product">${cand.product}</div>
-      <div class="ev-card-pathway">Target: <a href="${keggUrl}" target="_blank" rel="noopener">${cleanPathway}</a></div>
-      <div style="font-size:11px;color:var(--ft);margin-top:2px">${cand.pathwayId.toUpperCase()}</div>
+      <div class="ev-card-gene">${g.gene}${g.hyp ? ' <span class="pd-badge pd-badge-hyp" style="font-size:10px;vertical-align:middle">HYPOTHETICAL</span>' : ''}</div>
+      <div class="ev-card-product">${g.product}</div>
+      ${pwHtml ? `<div style="margin-top:6px;font-size:11px;color:var(--mt)">KEGG: ${pwHtml}</div>` : ''}
 
       <div class="ev-card-section">
-        <h4>Score Breakdown</h4>
+        <h4>STRING Scores — vs ${topP ? topP.partner : 'N/A'} (top r=${topP ? topP.r.toFixed(3) : 'N/A'})</h4>
         ${barsHtml}
       </div>
 
-      <div class="ev-summary">${cand.evidence}</div>
+      <div class="ev-summary" style="margin-top:12px">
+        Top Tn-seq |r| = <strong style="color:var(--tl)">${g.maxCorr.toFixed(3)}</strong> · 
+        ${g.nPartners} correlated partners (|r| \u2265 0.4) · 
+        ${partners.filter(p => (p.strCombined||0) > 0).length} with STRING data
+      </div>
 
       <div class="ev-card-section">
-        <h4>Pathway Partners (${partners.length})</h4>
+        <h4>Top Correlated Partners (${partners.length})</h4>
         <div class="ev-partners">${partnersHtml}</div>
       </div>
 
-      <button class="ev-gi-btn" onclick="switchToGI('${cand.gene}')">▶ View ${cand.gene} in GI Explorer</button>
+      <button class="ev-gi-btn" onclick="switchToGI('${g.gene}')">\u25B6 View ${g.gene} in GI Explorer</button>
     </div>
   `;
 }
